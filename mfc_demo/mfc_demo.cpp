@@ -9,7 +9,8 @@
 #endif
 
 // Excel COM 接口
-#import "C:\Program Files\Microsoft Office\Office15\EXCEL.EXE" no_namespace rename("DialogBox", "ExcelDialogBox") rename("RGB", "ExcelRGB") rename("CopyFile", "ExcelCopyFile") rename("ReplaceText", "ExcelReplaceText")
+// 暂时注释掉Excel COM接口，使用CSV格式保存
+// #import "C:\Program Files\Microsoft Office\Office15\EXCEL.EXE" no_namespace rename("DialogBox", "ExcelDialogBox") rename("RGB", "ExcelRGB") rename("CopyFile", "ExcelCopyFile") rename("ReplaceText", "ExcelReplaceText")
 
 // CExcelDemoDlg
 
@@ -80,36 +81,27 @@ BOOL CExcelDemoDlg::OnInitDialog()
 void CExcelDemoDlg::OnBnClickedSaveButton()
 {
     // 显示文件保存对话框
-    CFileDialog dlg(FALSE, _T("xlsx"), _T("Excel文档"), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("Excel文件 (*.xlsx)|*.xlsx|所有文件 (*.*)|*.*||"), this);
+    CFileDialog dlg(FALSE, _T("csv"), _T("Excel文档"), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("Excel文件 (*.csv)|*.csv|所有文件 (*.*)|*.*||"), this);
     if (dlg.DoModal() == IDOK)
     {
         CString strFilePath = dlg.GetPathName();
         
         try
         {
-            // 初始化COM
-            CoInitialize(NULL);
-            
-            // 创建Excel应用程序
-            _ApplicationPtr pExcelApp;
-            if (pExcelApp.CreateInstance("Excel.Application") != S_OK)
+            // 打开文件进行写入
+            CStdioFile file;
+            if (!file.Open(strFilePath, CFile::modeCreate | CFile::modeWrite | CFile::typeText))
             {
-                AfxMessageBox(_T("无法创建Excel应用程序"));
+                AfxMessageBox(_T("无法打开文件进行写入"));
                 return;
             }
-            
-            // 显示Excel窗口
-            pExcelApp->Visible = FALSE;
-            
-            // 创建工作簿
-            _WorkbookPtr pWorkbook = pExcelApp->Workbooks->Add();
-            _WorksheetPtr pWorksheet = pWorkbook->ActiveSheet;
             
             // 获取列表控件的列数和行数
             int nCols = m_listCtrl.GetHeaderCtrl()->GetItemCount();
             int nRows = m_listCtrl.GetItemCount();
             
             // 写入列标题
+            CString strLine;
             for (int i = 0; i < nCols; i++)
             {
                 LVCOLUMN lvColumn;
@@ -118,49 +110,43 @@ void CExcelDemoDlg::OnBnClickedSaveButton()
                 lvColumn.pszText = szText;
                 lvColumn.cchTextMax = 256;
                 m_listCtrl.GetColumn(i, &lvColumn);
-                pWorksheet->Cells->Item[1][i + 1] = szText;
+                if (i > 0)
+                    strLine += _T(",");
+                strLine += _T("\"") + CString(szText) + _T("\"");
             }
+            file.WriteString(strLine + _T("\n"));
             
             // 写入数据
             for (int i = 0; i < nRows; i++)
             {
+                strLine.Empty();
                 for (int j = 0; j < nCols; j++)
                 {
                     CString strText = m_listCtrl.GetItemText(i, j);
-                    pWorksheet->Cells->Item[i + 2][j + 1] = (LPCTSTR)strText;
+                    if (j > 0)
+                        strLine += _T(",");
+                    strLine += _T("\"") + strText + _T("\"");
                 }
+                file.WriteString(strLine + _T("\n"));
             }
             
-            // 保存文件
-            pWorkbook->SaveAs(_bstr_t((LPCTSTR)strFilePath), vtMissing, vtMissing, vtMissing, vtMissing, vtMissing, 0, vtMissing, vtMissing, vtMissing, vtMissing, vtMissing);
-            
-            // 关闭工作簿
-            pWorkbook->Close(FALSE);
-            
-            // 退出Excel
-            pExcelApp->Quit();
-            
-            // 释放COM对象
-            pWorksheet = NULL;
-            pWorkbook = NULL;
-            pExcelApp = NULL;
+            // 关闭文件
+            file.Close();
             
             // 显示保存成功消息
             AfxMessageBox(_T("Excel文件保存成功！"));
         }
-        catch (_com_error& e)
+        catch (CException* e)
         {
-            CString strError;
-            strError.Format(_T("Excel操作错误: %s"), e.ErrorMessage());
-            AfxMessageBox(strError);
+            TCHAR szError[1024];
+            e->GetErrorMessage(szError, 1024);
+            AfxMessageBox(CString(_T("文件操作错误: ")) + szError);
+            e->Delete();
         }
         catch (...)
         {
             AfxMessageBox(_T("未知错误"));
         }
-        
-        // 释放COM
-        CoUninitialize();
     }
 }
 

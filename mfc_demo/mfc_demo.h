@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "framework.h"
 #include "resource.h"
 
 // CExcelDemoDlg 对话框
