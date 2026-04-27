@@ -4,177 +4,182 @@
 #include "framework.h"
 #include "mfc_demo.h"
 
-#define MAX_LOADSTRING 100
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
 
-// 全局变量:
-HINSTANCE hInst;                                // 当前实例
-WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
-WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
+// Excel COM 接口
+#import "C:\Program Files\Microsoft Office\Office15\EXCEL.EXE" no_namespace rename("DialogBox", "ExcelDialogBox") rename("RGB", "ExcelRGB") rename("CopyFile", "ExcelCopyFile") rename("ReplaceText", "ExcelReplaceText")
 
-// 此代码模块中包含的函数的前向声明:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+// CExcelDemoDlg
 
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+IMPLEMENT_DYNAMIC(CExcelDemoDlg, CDialogEx)
+
+CExcelDemoDlg::CExcelDemoDlg(CWnd* pParent /*=nullptr*/)
+    : CDialogEx(IDD_MFCDEMO_DIALOG, pParent)
 {
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
-
-    // TODO: 在此处放置代码。
-
-    // 初始化全局字符串
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_MFCDEMO, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-
-    // 执行应用程序初始化:
-    if (!InitInstance (hInstance, nCmdShow))
-    {
-        return FALSE;
-    }
-
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MFCDEMO));
-
-    MSG msg;
-
-    // 主消息循环:
-    while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
-
-    return (int) msg.wParam;
 }
 
-
-
-//
-//  函数: MyRegisterClass()
-//
-//  目标: 注册窗口类。
-//
-ATOM MyRegisterClass(HINSTANCE hInstance)
+CExcelDemoDlg::~CExcelDemoDlg()
 {
-    WNDCLASSEXW wcex;
-
-    wcex.cbSize = sizeof(WNDCLASSEX);
-
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MFCDEMO));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MFCDEMO);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-    return RegisterClassExW(&wcex);
 }
 
-//
-//   函数: InitInstance(HINSTANCE, int)
-//
-//   目标: 保存实例句柄并创建主窗口
-//
-//   注释:
-//
-//        在此函数中，我们在全局变量中保存实例句柄并
-//        创建和显示主程序窗口。
-//
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+void CExcelDemoDlg::DoDataExchange(CDataExchange* pDX)
 {
-   hInst = hInstance; // 将实例句柄存储在全局变量中
-
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
-
-   if (!hWnd)
-   {
-      return FALSE;
-   }
-
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
-
-   return TRUE;
+    CDialogEx::DoDataExchange(pDX);
+    DDX_Control(pDX, IDC_LIST1, m_listCtrl);
 }
 
-//
-//  函数: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  目标: 处理主窗口的消息。
-//
-//  WM_COMMAND  - 处理应用程序菜单
-//  WM_PAINT    - 绘制主窗口
-//  WM_DESTROY  - 发送退出消息并返回
-//
-//
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+BEGIN_MESSAGE_MAP(CExcelDemoDlg, CDialogEx)
+    ON_BN_CLICKED(IDC_SAVE_BUTTON, &CExcelDemoDlg::OnBnClickedSaveButton)
+    ON_WM_CREATE()
+END_MESSAGE_MAP()
+
+// CExcelDemoDlg 消息处理程序
+
+int CExcelDemoDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-    switch (message)
-    {
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // 分析菜单选择:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 在此处添加使用 hdc 的任何绘图代码...
-            EndPaint(hWnd, &ps);
-        }
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-    }
+    if (CDialogEx::OnCreate(lpCreateStruct) == -1)
+        return -1;
+
+    // TODO:  在此添加您专用的创建代码
     return 0;
 }
 
-// “关于”框的消息处理程序。
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+BOOL CExcelDemoDlg::OnInitDialog()
 {
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
+    CDialogEx::OnInitDialog();
 
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+    // 设置列表控件的扩展样式
+    m_listCtrl.SetExtendedStyle(m_listCtrl.GetExtendedStyle() | LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
+
+    // 添加列
+    m_listCtrl.InsertColumn(0, _T("列1"), LVCFMT_LEFT, 100);
+    m_listCtrl.InsertColumn(1, _T("列2"), LVCFMT_LEFT, 100);
+    m_listCtrl.InsertColumn(2, _T("列3"), LVCFMT_LEFT, 100);
+    m_listCtrl.InsertColumn(3, _T("列4"), LVCFMT_LEFT, 100);
+    m_listCtrl.InsertColumn(4, _T("列5"), LVCFMT_LEFT, 100);
+
+    // 添加示例行
+    for (int i = 0; i < 10; i++)
+    {
+        CString strRow;
+        strRow.Format(_T("行%d"), i + 1);
+        int nItem = m_listCtrl.InsertItem(i, strRow);
+        for (int j = 1; j < 5; j++)
         {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
+            CString strCell;
+            strCell.Format(_T("单元格%d-%d"), i + 1, j + 1);
+            m_listCtrl.SetItemText(nItem, j, strCell);
         }
-        break;
     }
-    return (INT_PTR)FALSE;
+
+    return TRUE;
+}
+
+void CExcelDemoDlg::OnBnClickedSaveButton()
+{
+    // 显示文件保存对话框
+    CFileDialog dlg(FALSE, _T("xlsx"), _T("Excel文档"), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("Excel文件 (*.xlsx)|*.xlsx|所有文件 (*.*)|*.*||"), this);
+    if (dlg.DoModal() == IDOK)
+    {
+        CString strFilePath = dlg.GetPathName();
+        
+        try
+        {
+            // 初始化COM
+            CoInitialize(NULL);
+            
+            // 创建Excel应用程序
+            _ApplicationPtr pExcelApp;
+            if (pExcelApp.CreateInstance("Excel.Application") != S_OK)
+            {
+                AfxMessageBox(_T("无法创建Excel应用程序"));
+                return;
+            }
+            
+            // 显示Excel窗口
+            pExcelApp->Visible = FALSE;
+            
+            // 创建工作簿
+            _WorkbookPtr pWorkbook = pExcelApp->Workbooks->Add();
+            _WorksheetPtr pWorksheet = pWorkbook->ActiveSheet;
+            
+            // 获取列表控件的列数和行数
+            int nCols = m_listCtrl.GetHeaderCtrl()->GetItemCount();
+            int nRows = m_listCtrl.GetItemCount();
+            
+            // 写入列标题
+            for (int i = 0; i < nCols; i++)
+            {
+                LVCOLUMN lvColumn;
+                TCHAR szText[256];
+                lvColumn.mask = LVCF_TEXT;
+                lvColumn.pszText = szText;
+                lvColumn.cchTextMax = 256;
+                m_listCtrl.GetColumn(i, &lvColumn);
+                pWorksheet->Cells->Item[1][i + 1] = szText;
+            }
+            
+            // 写入数据
+            for (int i = 0; i < nRows; i++)
+            {
+                for (int j = 0; j < nCols; j++)
+                {
+                    CString strText = m_listCtrl.GetItemText(i, j);
+                    pWorksheet->Cells->Item[i + 2][j + 1] = (LPCTSTR)strText;
+                }
+            }
+            
+            // 保存文件
+            pWorkbook->SaveAs(_bstr_t((LPCTSTR)strFilePath), vtMissing, vtMissing, vtMissing, vtMissing, vtMissing, 0, vtMissing, vtMissing, vtMissing, vtMissing, vtMissing);
+            
+            // 关闭工作簿
+            pWorkbook->Close(FALSE);
+            
+            // 退出Excel
+            pExcelApp->Quit();
+            
+            // 释放COM对象
+            pWorksheet = NULL;
+            pWorkbook = NULL;
+            pExcelApp = NULL;
+            
+            // 显示保存成功消息
+            AfxMessageBox(_T("Excel文件保存成功！"));
+        }
+        catch (_com_error& e)
+        {
+            CString strError;
+            strError.Format(_T("Excel操作错误: %s"), e.ErrorMessage());
+            AfxMessageBox(strError);
+        }
+        catch (...)
+        {
+            AfxMessageBox(_T("未知错误"));
+        }
+        
+        // 释放COM
+        CoUninitialize();
+    }
+}
+
+// 应用程序类
+class CMyApp : public CWinApp
+{
+public:
+    virtual BOOL InitInstance();
+};
+
+CMyApp theApp;
+
+BOOL CMyApp::InitInstance()
+{
+    CWinApp::InitInstance();
+
+    CExcelDemoDlg dlg;
+    m_pMainWnd = &dlg;
+    dlg.DoModal();
+
+    return FALSE;
 }
