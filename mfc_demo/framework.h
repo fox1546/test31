@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include "targetver.h"
-// MFC 头文件
+// MFC 头文件 - 必须在其他头文件之前包含
 #include <afxwin.h>         // MFC 核心组件和标准组件
 #include <afxext.h>         // MFC 扩展
 #include <afxdtctl.h>       // MFC 对 Internet Explorer 4 公共控件的支持
@@ -18,9 +17,8 @@
 #include <afxdb.h>          // MFC ODBC 数据库支持
 #endif // _AFX_NO_DB_SUPPORT
 
+#include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 从 Windows 头文件中排除极少使用的内容
-// Windows 头文件
-#include <windows.h>
 // C 运行时头文件
 #include <stdlib.h>
 #include <malloc.h>
